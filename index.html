@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ระบบลงเวลางาน Beacon</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #28a745; color: white; font-weight: bold; cursor: pointer; }
+        #status { color: blue; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>ลงเวลางาน (IOMO Beacon)</h2>
+    <input type="text" id="empName" placeholder="ชื่อ-นามสกุล">
+    <input type="text" id="empId" placeholder="รหัสพนักงาน">
+    <select id="statusSelect">
+        <option value="IN">เข้างาน (Check-In)</option>
+        <option value="OUT">ออกงาน (Check-Out)</option>
+    </select>
+    
+    <button onclick="scanAndSubmit()">สแกน Beacon และบันทึกเวลา</button>
+    <p id="status"></p>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn146NFSfKaHuO4rks11noM1RvPv63tYgtfcOLzxvwj8HnZYuCztwUNzN8pXlfDcbX/exec";
+
+        async function scanAndSubmit() {
+            const statusEl = document.getElementById("status");
+            statusEl.innerText = "กำลังค้นหา Beacon...";
+
+            try {
+                // สแกนหา Eddystone Beacon
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [0xFEAA] }] 
+                });
+
+                statusEl.innerText = "เจอ Beacon แล้ว! กำลังบันทึกข้อมูล...";
+
+                const payload = {
+                    employeeName: document.getElementById("empName").value,
+                    employeeId: document.getElementById("empId").value,
+                    status: document.getElementById("statusSelect").value,
+                    beaconId: device.id // ใช้ ID ของ Bluetooth Device
+                };
+
+                // ส่งข้อมูลไป Google Sheets
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+
+                statusEl.innerText = "บันทึกสำเร็จเรียบร้อย!";
+                alert("บันทึกเวลาสำเร็จ!");
+
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = "เกิดข้อผิดพลาด: " + error;
+            }
+        }
+    </script>
+</body>
+</html>
